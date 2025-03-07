@@ -1,4 +1,4 @@
-use anyhow::{Context, bail};
+use anyhow::Context;
 use std::net::TcpStream;
 
 fn main() -> anyhow::Result<()> {
@@ -23,18 +23,10 @@ fn main() -> anyhow::Result<()> {
 
     // CONFIRM KEYS WERE SUCCESSFULLY SWAPPED
 
-    let ack = webutils::send_message(
-        &client_public_key,
-        &key_pair.private_key,
-        &mut stream,
-        b"ACK",
-    ).with_context(|| "Failed to send message to the server")?;
+    webutils::synchronize(&client_public_key, &key_pair.private_key, &mut stream)
+        .with_context(|| "Failed to synchronize with server")?;
 
-    if ack != "ACK" {
-        bail!("ACKNOWLEDGEMENT FAILED")
-    }
-
-    println!("ACKNOWLEDGEMENT SUCCEEDED");
+    println!("CLIENT-SERVER SYNC SUCCEEDED");
 
     loop {
         std::hint::spin_loop();
