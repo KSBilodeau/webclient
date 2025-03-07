@@ -18,17 +18,29 @@ fn main() -> anyhow::Result<()> {
 
     // EXCHANGE KEYS WITH SERVER
 
-    let client_public_key = webutils::exchange_keys(&key_pair.public_key, &mut stream)
+    let server_public_key = webutils::exchange_keys(&key_pair.public_key, &mut stream)
         .with_context(|| "Failed to exchange keys with server")?;
 
     // CONFIRM KEYS WERE SUCCESSFULLY SWAPPED
 
-    webutils::synchronize(&client_public_key, &key_pair.private_key, &mut stream)
+    webutils::synchronize(&server_public_key, &key_pair.private_key, &mut stream)
         .with_context(|| "Failed to synchronize with server")?;
 
     println!("CLIENT-SERVER SYNC SUCCEEDED");
 
     loop {
-        std::hint::spin_loop();
+        webutils::send_sync_message(
+            &server_public_key,
+            &key_pair.private_key,
+            &mut stream,
+            b"HEARTBEAT",
+        )
+        .with_context(|| "Failed to synchronize heartbeat")?;
+        println!(
+            "HEARTBEAT SYNCHRONIZED [Time since epoch: {:.2?}]",
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?
+        );
+
+        std::thread::sleep(std::time::Duration::from_secs(5));
     }
 }
